@@ -1,4 +1,4 @@
-namespace Play.Catalog;
+namespace Play.Catalog.Service;
 
 public class WeatherForecast
 {
