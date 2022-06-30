@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Play.Catalog.Service.Dtos;
 
 namespace Play.Catalog.Service.Controllers;
 
@@ -6,6 +7,8 @@ namespace Play.Catalog.Service.Controllers;
 [Route("[controller]")]
 public class ItemsController : ControllerBase
 {
-    private readonly 
+    private static readonly IList<ItemsDto> Items{
+        
+    }
 
 }
