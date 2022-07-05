@@ -7,7 +7,7 @@ namespace Play.Catalog.Service.Controllers;
 [Route("[controller]")]
 public class ItemsController : ControllerBase
 {
-    private static readonly IList<ItemDto> Items = new List<ItemDto>()
+    private static readonly List<ItemDto> Items = new()
     {
         new ItemDto(Guid.NewGuid(),"Item1","Sample Description for Item1", 2.0M,DateTimeOffset.Now),
         new ItemDto(Guid.NewGuid(),"Item2","Sample Description for Item2", 12.0M,DateTimeOffset.Now),
@@ -21,22 +21,20 @@ public class ItemsController : ControllerBase
     {
         _logger = logger;
     }
-    [HttpGet(Name = "GetAllItems")]
+    [HttpGet]
     public IEnumerable<ItemDto> GetAllItems()
     {
         return Items;
     }
-    [HttpGet(Name = "GetById")]
-    public ActionResult<ItemDto> GetById(string id)
+    [HttpGet("{id:guid}")]
+    public ActionResult<ItemDto> GetById(Guid id)
     {
-        if (string.IsNullOrWhiteSpace(id))
-        {
-            return BadRequest("Id can not be empty");
-        }
+        if (id != Guid.Empty) return Items.Single(x => x.Id == id);
+        _logger.LogWarning("Empty guid id received");
+        return BadRequest("Id can not be empty");
 
-        return Items.Single(x => x.Id.ToString() == id);
     }
-    [HttpGet(Name = "GetById")]
+    [HttpGet("{name}")]
     public ActionResult<ItemDto> GetByName(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
