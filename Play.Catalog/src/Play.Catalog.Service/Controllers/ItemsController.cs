@@ -37,7 +37,7 @@ public class ItemsController : ControllerBase
                 return item;
             }
             _logger.LogWarning("Bad Id:{Id} received",id);
-            return NotFound("Given id nt found");
+            return NotFound("Given id not found");
         }
         _logger.LogWarning("Empty guid id received");
         return BadRequest("Id can not be empty");
@@ -64,7 +64,12 @@ public class ItemsController : ControllerBase
     [HttpPut("{id:guid}")]
     public IActionResult UpdateItem(Guid id, UpdateItemDto item)
     {
-        var existingItem = Items.Single(x => x.Id == id);
+        var existingItem = Items.SingleOrDefault(x => x.Id == id);
+        if (existingItem==null)
+        {
+            _logger.LogWarning("Received GuiId:{Id} not found",id);
+            return NotFound("Item with the given Id not found");
+        }
         var updateItem = existingItem with
         {
             Name = item.Name,
@@ -80,6 +85,12 @@ public class ItemsController : ControllerBase
     public IActionResult DeleteItem(Guid id)
     {
         var index = Items.FindIndex(x => x.Id == id);
+        if (index<0)
+        {
+            _logger.LogWarning("Received Guid:{Id} not found",id);
+            return NotFound("Item with given Id not found");
+            
+        }
         Items.RemoveAt(index);
         return NoContent();
     }
