@@ -44,4 +44,27 @@ public class ItemsController : ControllerBase
         return Items.Single(x => string.Equals(x.Name, name, StringComparison.InvariantCultureIgnoreCase));
     }
 
+    [HttpPost]
+    public ActionResult<ItemDto> CreateItem(CreateItemDto item)
+    {
+        var newItem = new ItemDto(Guid.NewGuid(), item.Name,item.Description,item.Price,DateTimeOffset.Now);
+        Items.Add(newItem);
+        return CreatedAtAction(nameof(GetById),new {id=newItem.Id},newItem);
+    }
+
+    [HttpPut("{id:guid}")]
+    public IActionResult UpdateItem(Guid id, UpdateItemDto item)
+    {
+        var existingItem = Items.Single(x => x.Id == id);
+        var updateItem = existingItem with
+        {
+            Name = item.Name,
+            Description = item.Description,
+            Price = item.Price
+        };
+        var index = Items.FindIndex(x => x.Id == id);
+        Items[index] = updateItem;
+        return NoContent();
+    }
+
 }
