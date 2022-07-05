@@ -29,7 +29,16 @@ public class ItemsController : ControllerBase
     [HttpGet("{id:guid}")]
     public ActionResult<ItemDto> GetById(Guid id)
     {
-        if (id != Guid.Empty) return Items.Single(x => x.Id == id);
+        if (id != Guid.Empty)
+        {
+            var item=Items.SingleOrDefault(x => x.Id == id);
+            if (item!=null)
+            {
+                return item;
+            }
+            _logger.LogWarning("Bad Id:{Id} received",id);
+            return NotFound("Given id nt found");
+        }
         _logger.LogWarning("Empty guid id received");
         return BadRequest("Id can not be empty");
 
@@ -64,6 +73,14 @@ public class ItemsController : ControllerBase
         };
         var index = Items.FindIndex(x => x.Id == id);
         Items[index] = updateItem;
+        return NoContent();
+    }
+
+    [HttpDelete("{id:guid}")]
+    public IActionResult DeleteItem(Guid id)
+    {
+        var index = Items.FindIndex(x => x.Id == id);
+        Items.RemoveAt(index);
         return NoContent();
     }
 
