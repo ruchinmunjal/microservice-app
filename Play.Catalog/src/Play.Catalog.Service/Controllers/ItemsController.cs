@@ -1,5 +1,8 @@
+using System.Collections.ObjectModel;
 using Microsoft.AspNetCore.Mvc;
 using Play.Catalog.Service.Dtos;
+using Play.Catalog.Service.Entities;
+using Play.Catalog.Service.Repositories;
 
 namespace Play.Catalog.Service.Controllers;
 
@@ -7,13 +10,7 @@ namespace Play.Catalog.Service.Controllers;
 [Route("[controller]")]
 public class ItemsController : ControllerBase
 {
-    private static readonly List<ItemDto> Items = new()
-    {
-        new ItemDto(Guid.NewGuid(),"Item1","Sample Description for Item1", 2.0M,DateTimeOffset.Now),
-        new ItemDto(Guid.NewGuid(),"Item2","Sample Description for Item2", 12.0M,DateTimeOffset.Now),
-        new ItemDto(Guid.NewGuid(),"Item3","Sample Description for Item3", 21.0M,DateTimeOffset.Now),
-        new ItemDto(Guid.NewGuid(),"Item4","Sample Description for Item4", 8.0M,DateTimeOffset.Now),
-    };
+    private readonly ItemsRepository _itemsRepository = new();
 
     private readonly ILogger<ItemsController> _logger;
 
@@ -22,76 +19,63 @@ public class ItemsController : ControllerBase
         _logger = logger;
     }
     [HttpGet]
-    public IEnumerable<ItemDto> GetAllItems()
+    public async Task<List<ItemDto>> GetAllItems()
     {
-        return Items;
+        var items = await _itemsRepository.GetALlAsync();
+        return items.Select(item => item.ToDto()).ToList();
     }
     [HttpGet("{id:guid}")]
-    public ActionResult<ItemDto> GetById(Guid id)
+    public async Task<ActionResult<ItemDto>> GetById(Guid id)
     {
         if (id != Guid.Empty)
         {
-            var item=Items.SingleOrDefault(x => x.Id == id);
-            if (item!=null)
-            {
-                return item;
-            }
-            _logger.LogWarning("Bad Id:{Id} received",id);
-            return NotFound("Given id not found");
+            var item =  await _itemsRepository.GetByIdAsync(id);
+            
+            //_logger.LogWarning("Bad Id:{Id} received",id);
+            return (ActionResult<ItemDto>) item.ToDto() ?? NotFound("Given id not found");
         }
         _logger.LogWarning("Empty guid id received");
         return BadRequest("Id can not be empty");
 
     }
-    [HttpGet("{name}")]
-    public ActionResult<ItemDto> GetByName(string name)
-    {
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            return BadRequest("Id can not be empty");
-        }
-        return Items.Single(x => string.Equals(x.Name, name, StringComparison.InvariantCultureIgnoreCase));
-    }
+    
 
     [HttpPost]
-    public ActionResult<ItemDto> CreateItem(CreateItemDto item)
+    public async Task<ActionResult<ItemDto>> CreateItem(CreateItemDto item)
     {
         var newItem = new ItemDto(Guid.NewGuid(), item.Name,item.Description,item.Price,DateTimeOffset.Now);
-        Items.Add(newItem);
+        await _itemsRepository.CreateAsync(newItem.ToEntity());
         return CreatedAtAction(nameof(GetById),new {id=newItem.Id},newItem);
     }
 
     [HttpPut("{id:guid}")]
-    public IActionResult UpdateItem(Guid id, UpdateItemDto item)
+    public async Task<IActionResult> UpdateItem(Guid id, UpdateItemDto item)
     {
-        var existingItem = Items.SingleOrDefault(x => x.Id == id);
+        var existingItem = await _itemsRepository.GetByIdAsync(id);
         if (existingItem==null)
         {
-            _logger.LogWarning("Received GuiId:{Id} not found",id);
+            _logger.LogWarning("UpdateItem:Id:{Id} not found",id);
             return NotFound("Item with the given Id not found");
         }
-        var updateItem = existingItem with
-        {
-            Name = item.Name,
-            Description = item.Description,
-            Price = item.Price
-        };
-        var index = Items.FindIndex(x => x.Id == id);
-        Items[index] = updateItem;
+        existingItem.Description = item.Description;
+        existingItem.Name = item.Name;
+        existingItem.Price = item.Price;
+
+        await _itemsRepository.UpdateAsync(existingItem);
+        
         return NoContent();
     }
 
     [HttpDelete("{id:guid}")]
-    public IActionResult DeleteItem(Guid id)
+    public async Task<IActionResult> DeleteItem(Guid id)
     {
-        var index = Items.FindIndex(x => x.Id == id);
-        if (index<0)
+        var item = await _itemsRepository.GetByIdAsync(id);
+        if (item==null)
         {
-            _logger.LogWarning("Received Guid:{Id} not found",id);
-            return NotFound("Item with given Id not found");
-            
+            _logger.LogWarning("DeleteItem: Item with Id:{Id} not found",id);
+            return NotFound("Item with the given Id not found");
         }
-        Items.RemoveAt(index);
+        await _itemsRepository.RemoveAsync(id);
         return NoContent();
     }
 
